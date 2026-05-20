@@ -35,7 +35,7 @@ Prepare two values first:
 ### Option 1: One-click installer (recommended)
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/shuijiao1/Telegram-Sticker-Alchemy/main/deploy.sh)
+bash <(curl -Ls https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/latest/download/deploy.sh)
 ```
 
 The script checks Docker, asks for the install directory / token / owner ID, writes `.env` and `docker-compose.yml`, then runs `docker compose pull && docker compose up -d`.
@@ -46,8 +46,8 @@ The script checks Docker, asks for the install directory / token / owner ID, wri
 mkdir -p sticker-alchemy/data sticker-alchemy/tmp
 cd sticker-alchemy
 
-curl -Lo docker-compose.yml https://raw.githubusercontent.com/shuijiao1/Telegram-Sticker-Alchemy/main/docker-compose.yml
-curl -Lo .env.example https://raw.githubusercontent.com/shuijiao1/Telegram-Sticker-Alchemy/main/.env.example
+curl -Lo docker-compose.yml https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/latest/download/docker-compose.yml
+curl -Lo .env.example https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/latest/download/default.env.example
 cp .env.example .env
 nano .env
 ```
@@ -73,7 +73,7 @@ docker compose logs -f
 ```bash
 mkdir -p sticker-alchemy/data sticker-alchemy/tmp
 cd sticker-alchemy
-curl -Lo .env https://raw.githubusercontent.com/shuijiao1/Telegram-Sticker-Alchemy/main/.env.example
+curl -Lo .env https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/latest/download/default.env.example
 nano .env
 
 docker run -d \
