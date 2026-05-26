@@ -37,6 +37,8 @@
 
 ### 方式一：一键脚本
 
+适合 VPS / Linux 服务器；脚本会检查 Docker，依次询问安装目录、Bot Token、Owner ID，然后自动写入配置并启动容器。
+
 ```bash
 bash <(curl -Ls https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/latest/download/deploy.sh)
 ```
