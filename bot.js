@@ -77,6 +77,23 @@ function run(cmd, args, opts = {}) {
   });
 }
 
+async function getMediaDurationSeconds(input) {
+  const res = await run('ffprobe', [
+    '-v', 'error',
+    '-show_entries', 'format=duration',
+    '-of', 'default=nw=1:nk=1',
+    input,
+  ], { timeoutMs: 30000 });
+  if (res.code !== 0) return 3;
+  const value = Number.parseFloat(String(res.stdout || '').trim());
+  if (!Number.isFinite(value) || value <= 0) return 3;
+  return value;
+}
+
+function formatDurationForFfmpeg(seconds) {
+  return Math.max(0.1, seconds).toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+}
+
 function pickEmoji(text, fallback = '🙂') {
   const parts = String(text || '').trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return parts.slice(1).join(' ').slice(0, 16);
@@ -151,11 +168,17 @@ async function convertImageToWebp(input, output, opts = {}) {
 }
 
 async function convertVideoToWebm(input, output) {
+  // Preserve the source duration for short clips instead of silently trimming
+  // retry attempts to 2-3s. If compression cannot fit, fail loudly.
+  const targetDuration = Math.min(10, await getMediaDurationSeconds(input));
+  const dur = formatDurationForFfmpeg(targetDuration);
   const attempts = [
-    { dur: '3', fps: '24', crf: '42', scale: '512' },
-    { dur: '3', fps: '18', crf: '48', scale: '512' },
-    { dur: '2.5', fps: '15', crf: '52', scale: '384' },
-    { dur: '2', fps: '12', crf: '56', scale: '320' },
+    { dur, fps: '24', crf: '42', scale: '512' },
+    { dur, fps: '18', crf: '48', scale: '512' },
+    { dur, fps: '15', crf: '52', scale: '384' },
+    { dur, fps: '12', crf: '56', scale: '320' },
+    { dur, fps: '10', crf: '60', scale: '256' },
+    { dur, fps: '8', crf: '63', scale: '256' },
   ];
   let last = '';
   for (const a of attempts) {
