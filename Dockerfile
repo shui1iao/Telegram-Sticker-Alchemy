@@ -8,6 +8,10 @@ RUN apt-get update \
     libpangocairo-1.0-0 libpango-1.0-0 libcairo2 libgtk-3-0 fonts-noto-color-emoji \
   && rm -rf /var/lib/apt/lists/*
 
+ARG VERSION=0.0.0
+LABEL org.opencontainers.image.version=$VERSION
+LABEL org.opencontainers.image.source="https://github.com/shuijiao1/Telegram-Sticker-Alchemy"
+
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
