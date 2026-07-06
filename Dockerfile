@@ -15,7 +15,7 @@ LABEL org.opencontainers.image.source="https://github.com/shuijiao1/Telegram-Sti
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
-COPY bot.js ./
+COPY bot.js menu.js messages.js routing.js ./
 
 ENV NODE_ENV=production
 CMD ["npm", "start"]

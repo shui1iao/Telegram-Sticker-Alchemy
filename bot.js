@@ -7,6 +7,9 @@ import { mkdir, rm, stat } from 'node:fs/promises';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { setupTelegramMenu } from './menu.js';
+import { missingInputMessage } from './messages.js';
+import { hasBotMention, shouldAutoConvertDirectMedia } from './routing.js';
 
 const TOKEN = process.env.BOT_TOKEN;
 const OWNER_ID = String(process.env.OWNER_ID || '').trim();
@@ -28,8 +31,9 @@ if (!PUBLIC_ACCESS && ALLOWED_USER_IDS.size === 0) {
 }
 
 const bot = new Telegraf(TOKEN, { handlerTimeout: 10 * 60 * 1000 });
+let BOT_USERNAME = '';
 
-const helpText = `Sticker Alchemy 🧪\n\n用法：\n\n图片转贴纸：\n- 回复图片 / 图片文件发送 /pts\n- 或直接发图片给我\n- /pts 😋 可指定 emoji\n\nGIF/视频转贴纸：\n- 回复 GIF、动图、短视频发送 /gif\n- 或直接发 GIF/视频给我\n\n贴纸转图片/GIF：\n- 直接发静态贴纸：转 PNG\n- 直接发 Telegram 动态贴纸：转 GIF\n- 或回复贴纸发送 /stp\n\n命令：/pts /pic_to_sticker /gif /stp /sticker_to_pic /help`;
+const helpText = `Sticker Alchemy 🧪\n\n用法：\n\n图片转贴纸：\n- 私聊：直接发图片，或回复图片发 /pts\n- 群里：回复图片发 /pts 或 @我\n- /pts 😋 可指定 emoji\n\nGIF/视频转贴纸：\n- 私聊：直接发 GIF/视频，或回复后发 /gif\n- 群里：回复 GIF/视频发 /gif 或 @我\n\n贴纸转图片/GIF：\n- 私聊：直接发贴纸，或回复贴纸发 /stp\n- 群里：回复贴纸发 /stp 或 @我\n\n命令：/pts /pic_to_sticker /gif /stp /sticker_to_pic /help`;
 
 function allowed(ctx) {
   return PUBLIC_ACCESS || ALLOWED_USER_IDS.has(String(ctx.from?.id || ''));
@@ -289,7 +293,7 @@ async function handleImage(ctx) {
   const msg = currentOrReply(ctx);
   const input = getInputKindAndFileId(msg, 'image');
   if (!input || input.kind !== 'image') {
-    await ctx.reply('回复一张图片后发 /pts，或直接把图片发给我。');
+    await ctx.reply(missingInputMessage(ctx, 'image'));
     return;
   }
   const emoji = pickEmoji(ctx.message?.text, '🙂');
@@ -313,7 +317,7 @@ async function handleVideo(ctx) {
   const msg = currentOrReply(ctx);
   const input = getInputKindAndFileId(msg, 'video');
   if (!input || input.kind !== 'video') {
-    await ctx.reply('回复 GIF/动图/短视频后发 /gif，或直接把 GIF/视频发给我。');
+    await ctx.reply(missingInputMessage(ctx, 'video'));
     return;
   }
   const emoji = pickEmoji(ctx.message?.text, '🙂');
@@ -338,7 +342,7 @@ async function handleStickerToPic(ctx) {
   const msg = currentOrReply(ctx);
   const input = getInputKindAndFileId(msg, 'sticker');
   if (!input || input.kind !== 'sticker') {
-    await ctx.reply('回复一个贴纸后发 /stp，或直接把贴纸发给我。');
+    await ctx.reply(missingInputMessage(ctx, 'sticker'));
     return;
   }
   const dir = path.join(TMP_DIR, randomId());
@@ -361,6 +365,23 @@ async function handleStickerToPic(ctx) {
   }
 }
 
+async function handleMention(ctx) {
+  if (!hasBotMention(ctx, BOT_USERNAME)) return;
+  if (!(await ensureAllowed(ctx))) return;
+
+  const reply = repliedMessage(ctx);
+  const sticker = getInputKindAndFileId(reply, 'sticker');
+  if (sticker?.kind === 'sticker') return handleStickerToPic(ctx);
+
+  const video = getInputKindAndFileId(reply, 'video');
+  if (video?.kind === 'video') return handleVideo(ctx);
+
+  const image = getInputKindAndFileId(reply, 'image');
+  if (image?.kind === 'image') return handleImage(ctx);
+
+  await ctx.reply(missingInputMessage(ctx, 'image'));
+}
+
 bot.start(async (ctx) => {
   if (!(await ensureAllowed(ctx))) return;
   await ctx.reply(helpText);
@@ -373,23 +394,28 @@ bot.help(async (ctx) => {
 bot.command(['pts', 'pic_to_sticker'], handleImage);
 bot.command('gif', handleVideo);
 bot.command(['stp', 'sticker_to_pic'], handleStickerToPic);
+bot.on('text', handleMention);
 
 bot.on('photo', async (ctx) => {
+  if (!shouldAutoConvertDirectMedia(ctx)) return;
   if (!(await ensureAllowed(ctx))) return;
   await handleImage(ctx);
 });
 
 bot.on('sticker', async (ctx) => {
+  if (!shouldAutoConvertDirectMedia(ctx)) return;
   if (!(await ensureAllowed(ctx))) return;
   await handleStickerToPic(ctx);
 });
 
 bot.on(['animation', 'video'], async (ctx) => {
+  if (!shouldAutoConvertDirectMedia(ctx)) return;
   if (!(await ensureAllowed(ctx))) return;
   await handleVideo(ctx);
 });
 
 bot.on('document', async (ctx) => {
+  if (!shouldAutoConvertDirectMedia(ctx)) return;
   if (!(await ensureAllowed(ctx))) return;
   const input = getInputKindAndFileId(ctx.message);
   if (input?.kind === 'image') return handleImage(ctx);
@@ -402,6 +428,15 @@ bot.catch((err, ctx) => {
 });
 
 await mkdir(TMP_DIR, { recursive: true });
+try {
+  const botInfo = await bot.telegram.getMe();
+  BOT_USERNAME = botInfo?.username || '';
+  console.log(`Sticker Alchemy username: @${BOT_USERNAME || 'unknown'}`);
+  await setupTelegramMenu(bot.telegram);
+  console.log('Sticker Alchemy menu registered');
+} catch (err) {
+  console.error('failed to initialize Sticker Alchemy', err);
+}
 await bot.launch({ dropPendingUpdates: true });
 console.log('Sticker Alchemy started');
 

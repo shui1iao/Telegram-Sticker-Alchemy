@@ -19,7 +19,7 @@
 - Static sticker → PNG.
 - Telegram animated sticker (`.tgs`) → GIF.
 - Telegram video sticker (`.webm`) → GIF.
-- Automatic media detection or reply-based commands.
+- Direct auto-conversion in private chats; explicit reply commands or @mentions in groups to avoid noisy group spam.
 - Whitelist-first access control via `OWNER_ID` / `ALLOWED_USER_IDS`.
 - Docker-first deployment with GHCR images; Docker Compose does not require `git clone`.
 
@@ -97,7 +97,9 @@ Commands:
 - `/gif` — convert replied GIF/video/animation to video sticker
 - `/stp` or `/sticker_to_pic` — convert replied sticker to PNG/GIF
 
-You can also send supported media directly and the bot will choose the conversion automatically.
+In private chats, you can also send supported media directly and the bot will choose the conversion automatically.
+
+In groups, direct media auto-conversion is disabled to avoid spam. Reply to media with `/pts@YourBot`, `/gif@YourBot`, `/stp@YourBot`, or reply to media and @mention the bot. If the bot cannot see the replied media, disable privacy mode via @BotFather or make the bot a group admin, then resend the media and reply again.
 
 ---
 
