@@ -1,7 +1,7 @@
 # 🧪 Telegram Sticker Alchemy
 
-[![Docker Image](https://img.shields.io/badge/ghcr.io-telegram--sticker--alchemy-blue?logo=docker)](https://github.com/shuijiao1/Telegram-Sticker-Alchemy/pkgs/container/telegram-sticker-alchemy)
-[![Build](https://github.com/shuijiao1/Telegram-Sticker-Alchemy/actions/workflows/docker-ghcr.yml/badge.svg)](https://github.com/shuijiao1/Telegram-Sticker-Alchemy/actions/workflows/docker-ghcr.yml)
+[![Docker Image](https://img.shields.io/badge/ghcr.io-telegram--sticker--alchemy-blue?logo=docker)](https://github.com/shui1iao/Telegram-Sticker-Alchemy/pkgs/container/telegram-sticker-alchemy)
+[![Build](https://github.com/shui1iao/Telegram-Sticker-Alchemy/actions/workflows/docker-ghcr.yml/badge.svg)](https://github.com/shui1iao/Telegram-Sticker-Alchemy/actions/workflows/docker-ghcr.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **中文** | [English](README.en.md)
@@ -40,7 +40,7 @@
 适合 VPS / Linux 服务器；脚本会检查 Docker，依次询问安装目录、Bot Token、Owner ID，然后自动写入配置并启动容器。
 
 ```bash
-bash <(curl -Ls https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/latest/download/deploy.sh)
+bash <(curl -Ls https://github.com/shui1iao/Telegram-Sticker-Alchemy/releases/latest/download/deploy.sh)
 ```
 
 ### 方式二：Docker Compose
@@ -49,8 +49,8 @@ bash <(curl -Ls https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/l
 mkdir -p sticker-alchemy/data sticker-alchemy/tmp
 cd sticker-alchemy
 
-curl -Lo docker-compose.yml https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/latest/download/docker-compose.yml
-curl -Lo .env.example https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/latest/download/default.env.example
+curl -Lo docker-compose.yml https://github.com/shui1iao/Telegram-Sticker-Alchemy/releases/latest/download/docker-compose.yml
+curl -Lo .env.example https://github.com/shui1iao/Telegram-Sticker-Alchemy/releases/latest/download/default.env.example
 cp .env.example .env
 nano .env
 ```
@@ -76,7 +76,7 @@ docker compose logs -f
 ```bash
 mkdir -p sticker-alchemy/data sticker-alchemy/tmp
 cd sticker-alchemy
-curl -Lo .env https://github.com/shuijiao1/Telegram-Sticker-Alchemy/releases/latest/download/default.env.example
+curl -Lo .env https://github.com/shui1iao/Telegram-Sticker-Alchemy/releases/latest/download/default.env.example
 nano .env
 
 docker run -d \
@@ -85,7 +85,7 @@ docker run -d \
   --env-file .env \
   -v "$PWD/data:/app/data" \
   -v "$PWD/tmp:/tmp/sticker-alchemy" \
-  ghcr.io/shuijiao1/telegram-sticker-alchemy:latest
+  ghcr.io/shui1iao/telegram-sticker-alchemy:latest
 ```
 
 ---
@@ -182,7 +182,7 @@ docker compose up -d
 ## 🧩 源码运行（开发用）
 
 ```bash
-git clone https://github.com/shuijiao1/Telegram-Sticker-Alchemy.git
+git clone https://github.com/shui1iao/Telegram-Sticker-Alchemy.git
 cd Telegram-Sticker-Alchemy
 npm install --omit=dev
 cp .env.example .env

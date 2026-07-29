@@ -10,7 +10,7 @@ RUN apt-get update \
 
 ARG VERSION=0.0.0
 LABEL org.opencontainers.image.version=$VERSION
-LABEL org.opencontainers.image.source="https://github.com/shuijiao1/Telegram-Sticker-Alchemy"
+LABEL org.opencontainers.image.source="https://github.com/shui1iao/Telegram-Sticker-Alchemy"
 
 WORKDIR /app
 COPY package.json package-lock.json* ./

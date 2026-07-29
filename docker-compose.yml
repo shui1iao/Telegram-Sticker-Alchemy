@@ -1,6 +1,6 @@
 services:
   sticker-alchemy:
-    image: ghcr.io/shuijiao1/telegram-sticker-alchemy:latest
+    image: ghcr.io/shui1iao/telegram-sticker-alchemy:latest
     container_name: sticker-alchemy
     restart: unless-stopped
     env_file:

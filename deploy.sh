@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_NAME="Telegram Sticker Alchemy"
 APP_SLUG="sticker-alchemy"
-IMAGE="ghcr.io/shuijiao1/telegram-sticker-alchemy:latest"
+IMAGE="ghcr.io/shui1iao/telegram-sticker-alchemy:latest"
 DEFAULT_DIR="/opt/sticker-alchemy"
 TMP_DIR_DEFAULT="/tmp/sticker-alchemy"
 
@@ -28,8 +28,8 @@ need_root() {
 header() {
   echo -e "${C_CYAN}============================================${C_RESET}"
   echo -e "${C_CYAN} ${APP_NAME}${C_RESET}"
-  echo -e "${C_CYAN} 仓库: https://github.com/shuijiao1/Telegram-Sticker-Alchemy${C_RESET}"
-  echo -e "${C_CYAN} 作者: shuijiao1${C_RESET}"
+  echo -e "${C_CYAN} 仓库: https://github.com/shui1iao/Telegram-Sticker-Alchemy${C_RESET}"
+  echo -e "${C_CYAN} 作者: shui1iao${C_RESET}"
   echo -e "${C_CYAN}============================================${C_RESET}"
   if [ -d "${INSTALL_DIR:-$DEFAULT_DIR}" ]; then
     echo -e "安装状态: ${C_GREEN}已安装${C_RESET}"
