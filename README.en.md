@@ -15,9 +15,7 @@
 ## Features
 
 - Images/photos → Telegram static sticker (`.webp`).
-- GIF/video/animation → full Telegram video sticker (`.webm`, VP9) when compliant; otherwise a full-length, original-speed silent H.264 MP4 animation. No trimming, speed-up or splitting.
-  - Video stickers: at most 3 seconds, 256KB and 30fps, with one side exactly 512px.
-  - Unknown duration, conversion failure or an animation over 50MB produces an explicit error. GIF documents use the dynamic-media route.
+- GIF/video/animation → VP9 video sticker only, keeping the full clip up to 30 seconds and intentionally trimming longer clips to the first 30 seconds. Uses the original six compression presets and 512KiB output ceiling. No animation fallback, speed-up or splitting. Duration probe, conversion and Telegram rejection errors are reported explicitly; no three-second pre-rejection. GIF documents use dynamic routing.
 - Static sticker → PNG.
 - Telegram animated sticker (`.tgs`) → GIF.
 - Telegram video sticker (`.webm`) → GIF.

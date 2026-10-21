@@ -175,55 +175,56 @@ async function convertImageToWebp(input, output, opts = {}) {
   throw new Error('图片转贴纸后仍超过 512KB。');
 }
 
-const MAX_ANIMATION_BYTES = 50 * 1000 * 1000;
-
-async function verifyFullDuration(output, duration, tolerance = 0.05) {
+async function verifyStickerDuration(output, target, tolerance) {
   const actual = await getMediaDurationSeconds(output);
-  if (Math.abs(actual - duration) > tolerance) {
-    throw new Error('输出时长与原素材不符，已拒绝发送不完整内容。');
+  if (Math.abs(actual - target) > tolerance) {
+    throw new Error('输出时长与目标时长（最多前30秒）不符，已拒绝发送。');
   }
   return actual;
 }
 
 async function convertVideoToWebm(input, output) {
-  const duration = await getMediaDurationSeconds(input);
-  if (duration > 3) return null;
-  // Keep one side exactly 512 even on compression retries. Never trim input.
-  for (const crf of [42, 48, 52, 56, 60, 63]) {
-    await rm(output, { force: true });
-    const res = await run('ffmpeg', [
-      '-y', '-hide_banner', '-loglevel', 'error', '-xerror', '-i', input,
-      '-map', '0:v:0', '-an', '-vf',
-      'setpts=PTS-STARTPTS,fps=30,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p',
-      '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', String(crf),
-      '-pix_fmt', 'yuva420p', output,
-    ], { timeoutMs: 120000 });
-    if (res.code !== 0 || !(await existsNonEmpty(output))) continue;
-    try {
-      const actual = await verifyFullDuration(output, duration);
-      if (actual <= 3 && (await stat(output)).size <= 256 * 1024) return output;
-    } catch { /* Try full animation instead if timing cannot be preserved. */ }
+  // Keep the full clip up to 30 seconds; longer clips intentionally use the first 30.
+  const targetDuration = Math.min(30, await getMediaDurationSeconds(input));
+  const dur = formatDurationForFfmpeg(targetDuration);
+  const attempts = [
+    { dur, fps: '24', crf: '42', scale: '512' },
+    { dur, fps: '18', crf: '48', scale: '512' },
+    { dur, fps: '15', crf: '52', scale: '384' },
+    { dur, fps: '12', crf: '56', scale: '320' },
+    { dur, fps: '10', crf: '60', scale: '256' },
+    { dur, fps: '8', crf: '63', scale: '256' },
+  ];
+  let last = '';
+  for (const a of attempts) {
+    await rm(output, { force: true }).catch(() => {});
+    const vf = `setpts=PTS-STARTPTS,fps=${a.fps},scale=${a.scale}:${a.scale}:force_original_aspect_ratio=decrease,pad=${a.scale}:${a.scale}:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`;
+    const args = [
+      '-y', '-hide_banner', '-loglevel', 'error',
+      '-i', input,
+      '-t', a.dur,
+      '-map', '0:v:0', '-an', '-vf', vf,
+      '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', a.crf,
+      '-pix_fmt', 'yuva420p', '-r', a.fps,
+      output,
+    ];
+    const res = await run('ffmpeg', args, { timeoutMs: 120000 });
+    last = (res.stderr || res.stdout || '').trim();
+    if (res.code === 0 && await existsNonEmpty(output)) {
+      const s = await stat(output);
+      if (s.size <= 512 * 1024) {
+        try {
+          await verifyStickerDuration(output, targetDuration, 1 / Number(a.fps) + 0.005);
+          return output;
+        } catch (error) {
+          last = error.message;
+          continue;
+        }
+      }
+      last = `输出过大：${s.size}`;
+    }
   }
-  return null;
-}
-
-async function convertVideoToAnimation(input, output) {
-  const duration = await getMediaDurationSeconds(input);
-  const res = await run('ffmpeg', [
-    '-y', '-hide_banner', '-loglevel', 'error', '-xerror', '-i', input,
-    '-map', '0:v:0', '-an', '-vf',
-    'setpts=PTS-STARTPTS,fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2',
-    '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
-    '-pix_fmt', 'yuv420p', '-fps_mode', 'cfr', '-movflags', '+faststart', output,
-  ], { timeoutMs: 10 * 60 * 1000 });
-  if (res.code !== 0 || !(await existsNonEmpty(output))) {
-    throw new Error('完整动图转换失败，未截取或加速素材。');
-  }
-  await verifyFullDuration(output, duration);
-  if ((await stat(output)).size > MAX_ANIMATION_BYTES) {
-    throw new Error('完整动图超过 Telegram 50MB 发送限制，未截取或加速素材。');
-  }
-  return output;
+  throw new Error(`GIF/视频转贴纸失败：${last || 'unknown error'}`);
 }
 
 
@@ -344,15 +345,8 @@ async function handleVideo(ctx) {
   const out = path.join(dir, 'sticker.webm');
   try {
     await downloadFile(ctx, input.fileId, src);
-    const sticker = await convertVideoToWebm(src, out);
-    if (sticker) {
-      await sendSticker(ctx, sticker, emoji);
-    } else {
-      const animation = await convertVideoToAnimation(src, path.join(dir, 'animation.mp4'));
-      await ctx.replyWithAnimation({ source: animation }, {
-        caption: '素材超出视频贴纸限制，已保留完整内容和原速（无声动图）。',
-      });
-    }
+    await convertVideoToWebm(src, out);
+    await sendSticker(ctx, out, emoji);
   } catch (e) {
     await ctx.reply(`转换失败：${String(e?.message || e).slice(0, 500)}`);
   } finally {
