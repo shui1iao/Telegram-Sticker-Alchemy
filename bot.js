@@ -241,10 +241,22 @@ async function convertStickerToPng(input, output, meta = {}) {
   return output;
 }
 
+const MAX_TGS_UNCOMPRESSED_BYTES = 16 * 1024 * 1024;
+const MAX_TGS_FRAMES = 300;
+
 async function gunzipTgsToJson(input, output) {
   const raw = await fs.promises.readFile(input);
-  const json = raw[0] === 0x1f && raw[1] === 0x8b ? zlib.gunzipSync(raw) : raw;
-  JSON.parse(json.toString('utf8'));
+  if (raw.length > MAX_TGS_UNCOMPRESSED_BYTES) {
+    throw new Error('TGS 文件过大，已拒绝处理。');
+  }
+  const json = raw[0] === 0x1f && raw[1] === 0x8b
+    ? zlib.gunzipSync(raw, { maxOutputLength: MAX_TGS_UNCOMPRESSED_BYTES })
+    : raw;
+  const parsed = JSON.parse(json.toString('utf8'));
+  const declaredFrames = Number(parsed?.op || 0) - Number(parsed?.ip || 0);
+  if (Number.isFinite(declaredFrames) && declaredFrames > MAX_TGS_FRAMES) {
+    throw new Error(`动画帧数过多（>${MAX_TGS_FRAMES} 帧），已拒绝处理。`);
+  }
   await fs.promises.writeFile(output, json);
   return output;
 }
@@ -286,7 +298,7 @@ async function convertTgsToGif(input, output, opts = {}) {
     puppeteerOptions: { args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] },
     renderer: 'svg',
   });
-  const frameCount = Math.max(1, Number(result?.numFrames || 1));
+  const frameCount = Math.min(MAX_TGS_FRAMES, Math.max(1, Number(result?.numFrames || 1)));
   await pngFramesToGif(frames, output, frameCount, fps, width);
   return output;
 }
